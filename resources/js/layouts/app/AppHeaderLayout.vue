@@ -3,6 +3,7 @@ import AppContent from '@/components/AppContent.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import AppShell from '@/components/AppShell.vue';
 import { Toaster } from '@/components/ui/sonner';
+import ToastNotify from '@/components/ToastNotify.vue';
 import type { BreadcrumbItem } from '@/types';
 
 type Props = {
@@ -21,5 +22,6 @@ withDefaults(defineProps<Props>(), {
             <slot />
         </AppContent>
         <Toaster />
+        <ToastNotify />
     </AppShell>
 </template>

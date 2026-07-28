@@ -50,6 +50,8 @@ class Patient extends Model
         'notes',
     ];
 
+    protected $appends = ['full_name'];
+
     protected function casts(): array
     {
         return [

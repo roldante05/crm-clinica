@@ -31,9 +31,9 @@ const props = defineProps<{
         cancellation_reason: string | null;
         confirmed_at: string | null;
         cancelled_at: string | null;
-        doctor: { full_name: string; specialty: { name: string }; phone: string | null };
+        doctor: { full_name: string; specialty: { name: string } | null; phone: string | null };
         patient: { full_name: string; phone: string; medical_record_number: string };
-        createdBy: { name: string };
+        created_by: { name: string };
         notes: Note[];
     };
 }>();
@@ -103,10 +103,10 @@ const activeStatuses = ['scheduled', 'confirmed'];
                     <div><span class="text-gray-500">Hora:</span> <span class="font-medium">{{ appointment.appointment_time }}</span></div>
                     <div><span class="text-gray-500">Duración:</span> <span class="font-medium">{{ appointment.duration_minutes }} min</span></div>
                     <div><span class="text-gray-500">Médico:</span> <span class="font-medium">{{ appointment.doctor.full_name }}</span></div>
-                    <div><span class="text-gray-500">Especialidad:</span> <span class="font-medium">{{ appointment.doctor.specialty.name }}</span></div>
+                    <div><span class="text-gray-500">Especialidad:</span> <span class="font-medium">{{ appointment.doctor.specialty?.name || '—' }}</span></div>
                     <div><span class="text-gray-500">Paciente:</span> <span class="font-medium">{{ appointment.patient.full_name }}</span></div>
                     <div><span class="text-gray-500">Motivo:</span> <span class="font-medium">{{ appointment.reason || '-' }}</span></div>
-                    <div><span class="text-gray-500">Creado por:</span> <span class="font-medium">{{ appointment.createdBy.name }}</span></div>
+                    <div><span class="text-gray-500">Creado por:</span> <span class="font-medium">{{ appointment.created_by.name }}</span></div>
                     <div v-if="appointment.cancellation_reason"><span class="text-gray-500">Motivo cancelación:</span> <span class="font-medium text-red-600">{{ appointment.cancellation_reason }}</span></div>
                 </div>
 

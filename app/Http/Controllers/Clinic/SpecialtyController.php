@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Clinic;
 
 use App\Http\Controllers\Controller;
@@ -28,10 +30,12 @@ class SpecialtyController extends Controller
 
     public function store(StoreSpecialtyRequest $request): RedirectResponse
     {
-        Specialty::create($request->validated());
+        return $this->handleExceptions(function () use ($request) {
+            Specialty::create($request->validated());
 
-        return to_route('clinic.specialties.index')
-            ->with('toast', ['type' => 'success', 'message' => 'Especialidad creada correctamente.']);
+            return to_route('clinic.specialties.index')
+                ->with('toast', ['type' => 'success', 'message' => 'Especialidad creada correctamente.']);
+        }, 'specialty.store');
     }
 
     public function edit(Specialty $specialty): Response
@@ -43,17 +47,21 @@ class SpecialtyController extends Controller
 
     public function update(UpdateSpecialtyRequest $request, Specialty $specialty): RedirectResponse
     {
-        $specialty->update($request->validated());
+        return $this->handleExceptions(function () use ($request, $specialty) {
+            $specialty->update($request->validated());
 
-        return to_route('clinic.specialties.index')
-            ->with('toast', ['type' => 'success', 'message' => 'Especialidad actualizada correctamente.']);
+            return to_route('clinic.specialties.index')
+                ->with('toast', ['type' => 'success', 'message' => 'Especialidad actualizada correctamente.']);
+        }, 'specialty.update');
     }
 
     public function destroy(Specialty $specialty): RedirectResponse
     {
-        $specialty->delete();
+        return $this->handleExceptions(function () use ($specialty) {
+            $specialty->delete();
 
-        return to_route('clinic.specialties.index')
-            ->with('toast', ['type' => 'success', 'message' => 'Especialidad eliminada correctamente.']);
+            return to_route('clinic.specialties.index')
+                ->with('toast', ['type' => 'success', 'message' => 'Especialidad eliminada correctamente.']);
+        }, 'specialty.destroy');
     }
 }

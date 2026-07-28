@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\Gender;
@@ -81,7 +83,7 @@ class Patient extends Model
         static::creating(function (Patient $patient) {
             if (empty($patient->medical_record_number)) {
                 $lastNumber = static::withTrashed()->count();
-                $patient->medical_record_number = 'PM-'.str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+                $patient->medical_record_number = 'PM-'.str_pad((string) ($lastNumber + 1), 5, '0', STR_PAD_LEFT);
             }
         });
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Clinic;
 
 use App\Http\Controllers\Controller;
@@ -32,10 +34,12 @@ class DoctorScheduleController extends Controller
 
     public function store(Doctor $doctor, StoreDoctorScheduleRequest $request): RedirectResponse
     {
-        $doctor->schedules()->create($request->validated());
+        return $this->handleExceptions(function () use ($doctor, $request) {
+            $doctor->schedules()->create($request->validated());
 
-        return to_route('clinic.schedules.index', $doctor)
-            ->with('toast', ['type' => 'success', 'message' => 'Horario creado correctamente.']);
+            return to_route('clinic.schedules.index', $doctor)
+                ->with('toast', ['type' => 'success', 'message' => 'Horario creado correctamente.']);
+        }, 'schedule.store');
     }
 
     public function edit(Doctor $doctor, DoctorSchedule $schedule): Response
@@ -48,17 +52,21 @@ class DoctorScheduleController extends Controller
 
     public function update(Doctor $doctor, DoctorSchedule $schedule, UpdateDoctorScheduleRequest $request): RedirectResponse
     {
-        $schedule->update($request->validated());
+        return $this->handleExceptions(function () use ($doctor, $schedule, $request) {
+            $schedule->update($request->validated());
 
-        return to_route('clinic.schedules.index', $doctor)
-            ->with('toast', ['type' => 'success', 'message' => 'Horario actualizado correctamente.']);
+            return to_route('clinic.schedules.index', $doctor)
+                ->with('toast', ['type' => 'success', 'message' => 'Horario actualizado correctamente.']);
+        }, 'schedule.update');
     }
 
     public function destroy(Doctor $doctor, DoctorSchedule $schedule): RedirectResponse
     {
-        $schedule->delete();
+        return $this->handleExceptions(function () use ($doctor, $schedule) {
+            $schedule->delete();
 
-        return to_route('clinic.schedules.index', $doctor)
-            ->with('toast', ['type' => 'success', 'message' => 'Horario eliminado correctamente.']);
+            return to_route('clinic.schedules.index', $doctor)
+                ->with('toast', ['type' => 'success', 'message' => 'Horario eliminado correctamente.']);
+        }, 'schedule.destroy');
     }
 }

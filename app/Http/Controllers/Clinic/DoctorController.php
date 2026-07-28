@@ -1,26 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Clinic;
 
-use App\Enums\AppointmentStatus;
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Clinic\StoreDoctorRequest;
 use App\Http\Requests\Clinic\UpdateDoctorRequest;
 use App\Models\Doctor;
-use App\Models\Specialty;
-use App\Models\User;
+use App\Services\DoctorService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DoctorController extends Controller
 {
+    public function __construct(
+        protected DoctorService $doctorService,
+    ) {}
+
     public function index(): Response
     {
-        $doctors = Doctor::with(['user', 'specialty'])
-            ->latest()
-            ->paginate(15);
+        $doctors = $this->doctorService->index();
 
         return Inertia::render('clinic/doctors/Index', [
             'doctors' => $doctors,
@@ -29,75 +30,51 @@ class DoctorController extends Controller
 
     public function create(): Response
     {
-        // Prevent doctors from accessing creation routes
-        if (auth()->user()?->role === UserRole::Doctor) {
-            abort(403);
-        }
-
-        return Inertia::render('clinic/doctors/Create', [
-            'specialties' => Specialty::active()->orderBy('name')->get(),
-            'users' => User::where('role', UserRole::Doctor)
-                ->orderBy('name')
-                ->get(),
-        ]);
+        return $this->handleExceptions(function () {
+            return Inertia::render('clinic/doctors/Create', [
+                'specialties' => $this->doctorService->getSpecialties(),
+                'users' => $this->doctorService->getDoctorsUsers(),
+            ]);
+        }, 'doctor.create');
     }
 
     public function store(StoreDoctorRequest $request): RedirectResponse
     {
-        Doctor::create($request->validated());
+        return $this->handleExceptions(function () use ($request) {
+            $this->doctorService->create($request->validated());
 
-        return to_route('clinic.doctors.index')
-            ->with('toast', ['type' => 'success', 'message' => 'Médico creado correctamente.']);
+            return to_route('clinic.doctors.index')
+                ->with('toast', ['type' => 'success', 'message' => 'Médico creado correctamente.']);
+        }, 'doctor.store');
     }
 
     public function edit(Doctor $doctor): Response
     {
-        // Doctors can only edit their own profile
-        if (auth()->user()?->role === UserRole::Doctor) {
-            $myDoctorId = auth()->user()->doctor?->id;
-            if ($doctor->id !== $myDoctorId) {
-                abort(403);
-            }
-        }
+        $doctor = $this->doctorService->show($doctor);
 
         return Inertia::render('clinic/doctors/Edit', [
-            'doctor' => $doctor->load(['user', 'specialty']),
-            'specialties' => Specialty::active()->orderBy('name')->get(),
+            'doctor' => $doctor,
+            'specialties' => $this->doctorService->getSpecialties(),
         ]);
     }
 
     public function update(UpdateDoctorRequest $request, Doctor $doctor): RedirectResponse
     {
-        // Prevent doctors from updating other doctors
-        if (auth()->user()?->role === UserRole::Doctor && $doctor->id !== auth()->user()->doctor?->id) {
-            abort(403);
-        }
+        return $this->handleExceptions(function () use ($request, $doctor) {
+            $this->doctorService->update($doctor, $request->validated());
 
-        return to_route('clinic.doctors.index')
-            ->with('toast', ['type' => 'success', 'message' => 'Médico actualizado correctamente.']);
+            return to_route('clinic.doctors.index')
+                ->with('toast', ['type' => 'success', 'message' => 'Médico actualizado correctamente.']);
+        }, 'doctor.update');
     }
 
     public function destroy(Doctor $doctor): RedirectResponse
     {
-        if (auth()->user()?->role === UserRole::Doctor) {
-            abort(403);
-        }
+        return $this->handleExceptions(function () use ($doctor) {
+            $this->doctorService->delete($doctor);
 
-        $doctor->appointments()
-            ->whereIn('status', [AppointmentStatus::Scheduled, AppointmentStatus::Confirmed])
-            ->where('appointment_date', '>=', now()->toDateString())
-            ->update([
-                'status' => AppointmentStatus::Cancelled,
-                'cancellation_reason' => 'Médico dado de baja.',
-                'cancelled_at' => now(),
-                'cancelled_by' => auth()->id(),
-            ]);
-
-        $doctor->user()->update(['is_active' => false]);
-
-        $doctor->delete();
-
-        return to_route('clinic.doctors.index')
-            ->with('toast', ['type' => 'success', 'message' => 'Médico eliminado correctamente.']);
+            return to_route('clinic.doctors.index')
+                ->with('toast', ['type' => 'success', 'message' => 'Médico eliminado correctamente.']);
+        }, 'doctor.destroy');
     }
 }

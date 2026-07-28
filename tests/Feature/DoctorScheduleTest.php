@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Enums\DayOfWeek;
 use App\Models\Doctor;
 use App\Models\DoctorSchedule;

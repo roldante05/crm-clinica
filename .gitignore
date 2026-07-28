@@ -28,3 +28,7 @@ yarn-error.log
 /.vscode
 /.zed
 /testing
+/openspec
+/.agents
+/.atl
+/skills-lock.json

@@ -30,8 +30,8 @@ interface Appointment {
     duration_minutes: number;
     status: { value: string; label: string };
     reason: string | null;
-    doctor: { full_name: string; specialty: { name: string } };
-    patient: { full_name: string; phone: string };
+    doctor: { full_name: string; specialty: { name: string } } | null;
+    patient: { full_name: string; phone: string } | null;
     createdBy: { name: string };
 }
 
@@ -151,9 +151,9 @@ const statusColors: Record<string, string> = {
                     <tr v-for="apt in appointments.data" :key="apt.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td class="px-4 py-3">{{ apt.appointment_date }}</td>
                         <td class="px-4 py-3 font-medium">{{ apt.appointment_time }}</td>
-                        <td class="px-4 py-3">{{ apt.patient.full_name }}</td>
-                        <td class="px-4 py-3">{{ apt.doctor.full_name }}</td>
-                        <td class="px-4 py-3 text-gray-500">{{ apt.doctor.specialty.name }}</td>
+                        <td class="px-4 py-3">{{ apt.patient?.full_name || '-' }}</td>
+                        <td class="px-4 py-3">{{ apt.doctor?.full_name || '-' }}</td>
+                        <td class="px-4 py-3 text-gray-500">{{ apt.doctor?.specialty?.name || '—' }}</td>
                         <td class="px-4 py-3">
                             <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusColors[apt.status.value]]">
                                 {{ apt.status.label }}

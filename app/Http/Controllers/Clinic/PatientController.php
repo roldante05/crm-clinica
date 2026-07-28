@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Clinic;
 
+use App\Enums\AppointmentStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Clinic\StorePatientRequest;
@@ -50,12 +51,14 @@ class PatientController extends Controller
 
     public function show(Patient $patient): Response
     {
-        $patient->load(['appointments' => function ($query) {
-            $query->with(['doctor.user', 'doctor.specialty'])
-                ->latest('appointment_date')
-                ->latest('appointment_time')
-                ->limit(20);
-        }]);
+        $patient->load([
+            'appointments' => function ($query) {
+                $query->with(['doctor.user', 'doctor.specialty'])
+                    ->latest('appointment_date')
+                    ->latest('appointment_time')
+                    ->limit(20);
+            },
+        ]);
 
         // Doctors can only view patients they have appointments with
         if (auth()->user()?->role === UserRole::Doctor) {
@@ -93,10 +96,21 @@ class PatientController extends Controller
 
     public function destroy(Patient $patient): RedirectResponse
     {
-        // Prevent doctors from deleting patients
         if (auth()->user()?->role === UserRole::Doctor) {
             abort(403);
         }
+
+        $patient->appointments()
+            ->whereIn('status', [AppointmentStatus::Scheduled, AppointmentStatus::Confirmed])
+            ->where('appointment_date', '>=', now()->toDateString())
+            ->update([
+                'status' => AppointmentStatus::Cancelled,
+                'cancellation_reason' => 'Paciente dado de baja.',
+                'cancelled_at' => now(),
+                'cancelled_by' => auth()->id(),
+            ]);
+
+        $patient->delete();
 
         return to_route('clinic.patients.index')
             ->with('toast', ['type' => 'success', 'message' => 'Paciente eliminado correctamente.']);

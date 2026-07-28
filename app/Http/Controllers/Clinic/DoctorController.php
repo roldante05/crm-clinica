@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Clinic;
 
+use App\Enums\AppointmentStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Clinic\StoreDoctorRequest;
@@ -36,7 +37,6 @@ class DoctorController extends Controller
         return Inertia::render('clinic/doctors/Create', [
             'specialties' => Specialty::active()->orderBy('name')->get(),
             'users' => User::where('role', UserRole::Doctor)
-                ->doesntHave('doctor')
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -79,10 +79,23 @@ class DoctorController extends Controller
 
     public function destroy(Doctor $doctor): RedirectResponse
     {
-        // Prevent doctors from deleting doctors
         if (auth()->user()?->role === UserRole::Doctor) {
             abort(403);
         }
+
+        $doctor->appointments()
+            ->whereIn('status', [AppointmentStatus::Scheduled, AppointmentStatus::Confirmed])
+            ->where('appointment_date', '>=', now()->toDateString())
+            ->update([
+                'status' => AppointmentStatus::Cancelled,
+                'cancellation_reason' => 'Médico dado de baja.',
+                'cancelled_at' => now(),
+                'cancelled_by' => auth()->id(),
+            ]);
+
+        $doctor->user()->update(['is_active' => false]);
+
+        $doctor->delete();
 
         return to_route('clinic.doctors.index')
             ->with('toast', ['type' => 'success', 'message' => 'Médico eliminado correctamente.']);

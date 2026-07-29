@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Data\Clinic\CreatePatientData;
+use App\Data\Clinic\UpdatePatientData;
 use App\Enums\AppointmentStatus;
 use App\Enums\UserRole;
 use App\Exceptions\AuthorizationException;
@@ -26,13 +28,13 @@ class PatientService
         return Patient::latest()->paginate(15);
     }
 
-    public function create(array $data): Patient
+    public function create(CreatePatientData $data): Patient
     {
         if (auth()->user()?->role === UserRole::Doctor) {
             throw new AuthorizationException('Los médicos no pueden crear pacientes.');
         }
 
-        return Patient::create($data);
+        return Patient::create(array_filter($data->toArray(), fn ($v) => $v !== null));
     }
 
     public function show(Patient $patient): Patient
@@ -60,13 +62,13 @@ class PatientService
         return $patient;
     }
 
-    public function update(Patient $patient, array $data): Patient
+    public function update(Patient $patient, UpdatePatientData $data): Patient
     {
         if (auth()->user()?->role === UserRole::Doctor) {
             throw new AuthorizationException('Los médicos no pueden modificar pacientes.');
         }
 
-        $patient->update($data);
+        $patient->update(array_filter($data->toArray(), fn ($v) => $v !== null));
 
         return $patient->fresh();
     }

@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Data\Clinic\CreateAppointmentData;
+use App\Data\Clinic\CreateAppointmentNoteData;
+use App\Data\Clinic\UpdateAppointmentData;
 use App\Enums\AppointmentStatus;
 use App\Enums\DayOfWeek;
 use App\Exceptions\AuthorizationException;
@@ -23,13 +26,16 @@ test('create sets duration from schedule when not provided', function () {
     DoctorSchedule::factory()->forDoctor($doctor)->morning()->forDay(DayOfWeek::from(now()->dayOfWeek))->create();
     $patient = Patient::factory()->create();
 
-    $appointment = $this->service->create([
-        'doctor_id' => $doctor->id,
-        'patient_id' => $patient->id,
-        'appointment_date' => now()->toDateString(),
-        'appointment_time' => '09:00',
-        'reason' => 'Control',
-    ], $this->admin->id);
+    $data = new CreateAppointmentData(
+        doctor_id: $doctor->id,
+        patient_id: $patient->id,
+        appointment_date: now()->toDateString(),
+        appointment_time: '09:00',
+        duration_minutes: null,
+        reason: 'Control',
+    );
+
+    $appointment = $this->service->create($data, $this->admin->id);
 
     expect($appointment)->toBeInstanceOf(Appointment::class)
         ->and($appointment->duration_minutes)->toBe(30)
@@ -40,14 +46,16 @@ test('create uses provided duration when given', function () {
     $doctor = Doctor::factory()->create();
     $patient = Patient::factory()->create();
 
-    $appointment = $this->service->create([
-        'doctor_id' => $doctor->id,
-        'patient_id' => $patient->id,
-        'appointment_date' => now()->toDateString(),
-        'appointment_time' => '10:00',
-        'duration_minutes' => 45,
-        'reason' => 'Control',
-    ], $this->admin->id);
+    $data = new CreateAppointmentData(
+        doctor_id: $doctor->id,
+        patient_id: $patient->id,
+        appointment_date: now()->toDateString(),
+        appointment_time: '10:00',
+        duration_minutes: 45,
+        reason: 'Control',
+    );
+
+    $appointment = $this->service->create($data, $this->admin->id);
 
     expect($appointment->duration_minutes)->toBe(45);
 });
@@ -55,7 +63,16 @@ test('create uses provided duration when given', function () {
 test('update calls confirm on appointment when status is Confirmed', function () {
     $appointment = Appointment::factory()->create(['status' => AppointmentStatus::Scheduled]);
 
-    $this->service->update($appointment, ['status' => AppointmentStatus::Confirmed->value]);
+    $data = new UpdateAppointmentData(
+        appointment_date: null,
+        appointment_time: null,
+        duration_minutes: null,
+        reason: null,
+        status: AppointmentStatus::Confirmed->value,
+        cancellation_reason: null,
+    );
+
+    $this->service->update($appointment, $data);
 
     expect($appointment->fresh()->status)->toBe(AppointmentStatus::Confirmed);
 });
@@ -63,10 +80,16 @@ test('update calls confirm on appointment when status is Confirmed', function ()
 test('update cancels appointment with reason', function () {
     $appointment = Appointment::factory()->create(['status' => AppointmentStatus::Scheduled]);
 
-    $this->service->update($appointment, [
-        'status' => AppointmentStatus::Cancelled->value,
-        'cancellation_reason' => 'Motivo de prueba',
-    ]);
+    $data = new UpdateAppointmentData(
+        appointment_date: null,
+        appointment_time: null,
+        duration_minutes: null,
+        reason: null,
+        status: AppointmentStatus::Cancelled->value,
+        cancellation_reason: 'Motivo de prueba',
+    );
+
+    $this->service->update($appointment, $data);
 
     $fresh = $appointment->fresh();
     expect($fresh->status)->toBe(AppointmentStatus::Cancelled)
@@ -76,7 +99,11 @@ test('update cancels appointment with reason', function () {
 test('addNote creates note for appointment', function () {
     $appointment = Appointment::factory()->create();
 
-    $this->service->addNote($appointment, 'Nota de prueba', $this->admin->id);
+    $data = new CreateAppointmentNoteData(
+        content: 'Nota de prueba',
+    );
+
+    $this->service->addNote($appointment, $data, $this->admin->id);
 
     expect($appointment->notes()->count())->toBe(1)
         ->and($appointment->notes()->first()->content)->toBe('Nota de prueba');

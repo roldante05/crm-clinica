@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Data\Clinic\CreateAppointmentData;
+use App\Data\Clinic\CreateAppointmentNoteData;
+use App\Data\Clinic\UpdateAppointmentData;
 use App\Enums\AppointmentStatus;
 use App\Enums\UserRole;
 use App\Exceptions\AuthorizationException;
@@ -83,49 +86,52 @@ class AppointmentService
         return Patient::orderBy('last_name')->get();
     }
 
-    public function create(array $data, int $userId): Appointment
+    public function create(CreateAppointmentData $data, int $userId): Appointment
     {
-        $data['created_by'] = $userId;
+        $appointmentData = array_filter($data->toArray(), fn ($v) => $v !== null);
+        $appointmentData['created_by'] = $userId;
 
-        if (! isset($data['duration_minutes'])) {
-            $dayOfWeek = Carbon::parse($data['appointment_date'])->dayOfWeek;
-            $schedule = DoctorSchedule::where('doctor_id', $data['doctor_id'])
+        if (! isset($appointmentData['duration_minutes'])) {
+            $dayOfWeek = Carbon::parse($appointmentData['appointment_date'])->dayOfWeek;
+            $schedule = DoctorSchedule::where('doctor_id', $appointmentData['doctor_id'])
                 ->where('day_of_week', $dayOfWeek)
-                ->where('start_time', '<=', $data['appointment_time'])
-                ->where('end_time', '>', $data['appointment_time'])
+                ->where('start_time', '<=', $appointmentData['appointment_time'])
+                ->where('end_time', '>', $appointmentData['appointment_time'])
                 ->active()
                 ->first();
 
-            $data['duration_minutes'] = $schedule?->slot_duration_minutes ?? 30;
+            $appointmentData['duration_minutes'] = $schedule?->slot_duration_minutes ?? 30;
         }
 
-        return Appointment::create($data);
+        return Appointment::create($appointmentData);
     }
 
-    public function update(Appointment $appointment, array $data): Appointment
+    public function update(Appointment $appointment, UpdateAppointmentData $data): Appointment
     {
-        if (isset($data['status'])) {
-            $status = AppointmentStatus::from($data['status']);
+        $appointmentData = array_filter($data->toArray(), fn ($v) => $v !== null);
+
+        if (isset($appointmentData['status'])) {
+            $status = AppointmentStatus::from($appointmentData['status']);
 
             match ($status) {
                 AppointmentStatus::Confirmed => $appointment->confirm((int) auth()->id()),
                 AppointmentStatus::Completed => $appointment->complete(),
-                AppointmentStatus::Cancelled => $appointment->cancel($data['cancellation_reason'] ?? '', (int) auth()->id()),
+                AppointmentStatus::Cancelled => $appointment->cancel($appointmentData['cancellation_reason'] ?? '', (int) auth()->id()),
                 AppointmentStatus::NoShow => $appointment->markNoShow(),
-                default => $appointment->update($data),
+                default => $appointment->update($appointmentData),
             };
         } else {
-            $appointment->update($data);
+            $appointment->update($appointmentData);
         }
 
         return $appointment->fresh();
     }
 
-    public function addNote(Appointment $appointment, string $content, int $authorId): void
+    public function addNote(Appointment $appointment, CreateAppointmentNoteData $data, int $authorId): void
     {
         $appointment->notes()->create([
             'author_id' => $authorId,
-            'content' => $content,
+            'content' => $data->content,
         ]);
     }
 

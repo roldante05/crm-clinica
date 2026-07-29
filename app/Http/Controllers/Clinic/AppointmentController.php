@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Clinic;
 
+use App\Data\Clinic\CreateAppointmentData;
+use App\Data\Clinic\CreateAppointmentNoteData;
+use App\Data\Clinic\UpdateAppointmentData;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Clinic\StoreAppointmentNoteRequest;
-use App\Http\Requests\Clinic\StoreAppointmentRequest;
-use App\Http\Requests\Clinic\UpdateAppointmentRequest;
 use App\Models\Appointment;
 use App\Services\AppointmentService;
 use Illuminate\Http\RedirectResponse;
@@ -41,10 +41,10 @@ class AppointmentController extends Controller
         ]);
     }
 
-    public function store(StoreAppointmentRequest $request): RedirectResponse
+    public function store(CreateAppointmentData $data): RedirectResponse
     {
-        return $this->handleExceptions(function () use ($request) {
-            $this->appointmentService->create($request->validated(), (int) auth()->id());
+        return $this->handleExceptions(function () use ($data) {
+            $this->appointmentService->create($data, (int) auth()->id());
 
             return to_route('clinic.appointments.index')
                 ->with('toast', ['type' => 'success', 'message' => 'Turno creado correctamente.']);
@@ -69,20 +69,20 @@ class AppointmentController extends Controller
         ]);
     }
 
-    public function update(UpdateAppointmentRequest $request, Appointment $appointment): RedirectResponse
+    public function update(UpdateAppointmentData $data, Appointment $appointment): RedirectResponse
     {
-        return $this->handleExceptions(function () use ($request, $appointment) {
-            $this->appointmentService->update($appointment, $request->validated());
+        return $this->handleExceptions(function () use ($data, $appointment) {
+            $this->appointmentService->update($appointment, $data);
 
             return to_route('clinic.appointments.index')
                 ->with('toast', ['type' => 'success', 'message' => 'Turno actualizado correctamente.']);
         }, 'appointment.update');
     }
 
-    public function addNote(Appointment $appointment, StoreAppointmentNoteRequest $request): RedirectResponse
+    public function addNote(Appointment $appointment, CreateAppointmentNoteData $data): RedirectResponse
     {
-        return $this->handleExceptions(function () use ($appointment, $request) {
-            $this->appointmentService->addNote($appointment, $request->validated('content'), (int) auth()->id());
+        return $this->handleExceptions(function () use ($appointment, $data) {
+            $this->appointmentService->addNote($appointment, $data, (int) auth()->id());
 
             return back()
                 ->with('toast', ['type' => 'success', 'message' => 'Nota agregada correctamente.']);

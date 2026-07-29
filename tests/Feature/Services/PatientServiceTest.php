@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Data\Clinic\CreatePatientData;
+use App\Data\Clinic\UpdatePatientData;
 use App\Enums\AppointmentStatus;
 use App\Exceptions\AuthorizationException;
 use App\Models\Appointment;
@@ -16,11 +18,22 @@ beforeEach(function () {
 });
 
 test('create persists patient', function () {
-    $patient = $this->service->create([
-        'first_name' => 'Carlos',
-        'last_name' => 'López',
-        'phone' => '+54 11 5555-1234',
-    ]);
+    $data = new CreatePatientData(
+        first_name: 'Carlos',
+        last_name: 'López',
+        email: null,
+        phone: '+54 11 5555-1234',
+        secondary_phone: null,
+        document_type: null,
+        document_number: null,
+        date_of_birth: null,
+        gender: null,
+        address: null,
+        city: null,
+        notes: null,
+    );
+
+    $patient = $this->service->create($data);
 
     expect($patient)->toBeInstanceOf(Patient::class)
         ->and(Patient::count())->toBe(1);
@@ -30,18 +43,44 @@ test('create throws AuthorizationException for doctor user', function () {
     $doctorUser = User::factory()->doctor()->create();
     $this->actingAs($doctorUser);
 
+    $data = new CreatePatientData(
+        first_name: 'Test',
+        last_name: 'User',
+        email: null,
+        phone: '+54 11 5555-0000',
+        secondary_phone: null,
+        document_type: null,
+        document_number: null,
+        date_of_birth: null,
+        gender: null,
+        address: null,
+        city: null,
+        notes: null,
+    );
+
     $this->expectException(AuthorizationException::class);
-    $this->service->create([
-        'first_name' => 'Test',
-        'last_name' => 'User',
-        'phone' => '+54 11 5555-0000',
-    ]);
+    $this->service->create($data);
 });
 
 test('update persists changes', function () {
     $patient = Patient::factory()->create(['first_name' => 'Juan']);
 
-    $updated = $this->service->update($patient, ['first_name' => 'Juan Carlos']);
+    $data = new UpdatePatientData(
+        first_name: 'Juan Carlos',
+        last_name: $patient->last_name,
+        email: $patient->email,
+        phone: $patient->phone,
+        secondary_phone: $patient->secondary_phone,
+        document_type: $patient->document_type,
+        document_number: $patient->document_number,
+        date_of_birth: $patient->date_of_birth?->toDateString(),
+        gender: $patient->gender?->value,
+        address: $patient->address,
+        city: $patient->city,
+        notes: $patient->notes,
+    );
+
+    $updated = $this->service->update($patient, $data);
 
     expect($updated->first_name)->toBe('Juan Carlos');
 });
@@ -51,8 +90,23 @@ test('update throws AuthorizationException for doctor user', function () {
     $this->actingAs($doctorUser);
     $patient = Patient::factory()->create();
 
+    $data = new UpdatePatientData(
+        first_name: 'Hacked',
+        last_name: $patient->last_name,
+        email: $patient->email,
+        phone: $patient->phone,
+        secondary_phone: $patient->secondary_phone,
+        document_type: $patient->document_type,
+        document_number: $patient->document_number,
+        date_of_birth: $patient->date_of_birth?->toDateString(),
+        gender: $patient->gender?->value,
+        address: $patient->address,
+        city: $patient->city,
+        notes: $patient->notes,
+    );
+
     $this->expectException(AuthorizationException::class);
-    $this->service->update($patient, ['first_name' => 'Hacked']);
+    $this->service->update($patient, $data);
 });
 
 test('delete cancels future appointments and soft-deletes patient', function () {

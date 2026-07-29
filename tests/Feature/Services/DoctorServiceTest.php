@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Data\Clinic\CreateDoctorData;
+use App\Data\Clinic\UpdateDoctorData;
 use App\Enums\AppointmentStatus;
 use App\Exceptions\AuthorizationException;
 use App\Models\Appointment;
@@ -20,12 +22,15 @@ test('create persists doctor', function () {
     $user = User::factory()->doctor()->create();
     $specialty = Specialty::factory()->create();
 
-    $doctor = $this->service->create([
-        'user_id' => $user->id,
-        'specialty_id' => $specialty->id,
-        'license_number' => 'MAT-12345',
-        'phone' => '+54 11 5555-0000',
-    ]);
+    $data = new CreateDoctorData(
+        user_id: $user->id,
+        specialty_id: $specialty->id,
+        license_number: 'MAT-12345',
+        phone: '+54 11 5555-0000',
+        is_active: null,
+    );
+
+    $doctor = $this->service->create($data);
 
     expect($doctor)->toBeInstanceOf(Doctor::class)
         ->and(Doctor::count())->toBe(1);
@@ -37,18 +42,29 @@ test('create throws AuthorizationException for doctor user', function () {
     $user = User::factory()->doctor()->create();
     $specialty = Specialty::factory()->create();
 
+    $data = new CreateDoctorData(
+        user_id: $user->id,
+        specialty_id: $specialty->id,
+        license_number: 'MAT-99999',
+        phone: null,
+        is_active: null,
+    );
+
     $this->expectException(AuthorizationException::class);
-    $this->service->create([
-        'user_id' => $user->id,
-        'specialty_id' => $specialty->id,
-        'license_number' => 'MAT-99999',
-    ]);
+    $this->service->create($data);
 });
 
 test('update persists changes (bug fix)', function () {
     $doctor = Doctor::factory()->create(['phone' => '+54 11 5555-0000']);
 
-    $updated = $this->service->update($doctor, ['phone' => '+54 11 5555-9999']);
+    $data = new UpdateDoctorData(
+        specialty_id: $doctor->specialty_id,
+        license_number: $doctor->license_number,
+        phone: '+54 11 5555-9999',
+        is_active: null,
+    );
+
+    $updated = $this->service->update($doctor, $data);
 
     expect($updated->phone)->toBe('+54 11 5555-9999');
 });
@@ -60,8 +76,15 @@ test('update throws AuthorizationException when doctor tries to update another',
 
     $this->actingAs($doctorUser);
 
+    $data = new UpdateDoctorData(
+        specialty_id: $otherDoctor->specialty_id,
+        license_number: $otherDoctor->license_number,
+        phone: '+54 11 5555-1111',
+        is_active: null,
+    );
+
     $this->expectException(AuthorizationException::class);
-    $this->service->update($otherDoctor, ['phone' => '+54 11 5555-1111']);
+    $this->service->update($otherDoctor, $data);
 });
 
 test('delete cancels future appointments, deactivates user, and soft-deletes doctor', function () {

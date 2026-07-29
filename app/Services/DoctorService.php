@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Data\Clinic\CreateDoctorData;
+use App\Data\Clinic\UpdateDoctorData;
 use App\Enums\AppointmentStatus;
 use App\Enums\UserRole;
 use App\Exceptions\AuthorizationException;
@@ -35,13 +37,13 @@ class DoctorService
             ->get();
     }
 
-    public function create(array $data): Doctor
+    public function create(CreateDoctorData $data): Doctor
     {
         if (auth()->user()?->role === UserRole::Doctor) {
             throw new AuthorizationException('Los médicos no pueden crear otros médicos.');
         }
 
-        return Doctor::create($data);
+        return Doctor::create(array_filter($data->toArray(), fn ($v) => $v !== null));
     }
 
     public function show(Doctor $doctor): Doctor
@@ -56,13 +58,13 @@ class DoctorService
         return $doctor->load(['user', 'specialty']);
     }
 
-    public function update(Doctor $doctor, array $data): Doctor
+    public function update(Doctor $doctor, UpdateDoctorData $data): Doctor
     {
         if (auth()->user()?->role === UserRole::Doctor && $doctor->id !== auth()->user()->doctor?->id) {
             throw new AuthorizationException('No tiene permiso para modificar este médico.');
         }
 
-        $doctor->update($data);
+        $doctor->update(array_filter($data->toArray(), fn ($v) => $v !== null));
 
         return $doctor->fresh();
     }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Clinic;
 
+use App\Data\Clinic\CreateDoctorData;
+use App\Data\Clinic\UpdateDoctorData;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Clinic\StoreDoctorRequest;
-use App\Http\Requests\Clinic\UpdateDoctorRequest;
 use App\Models\Doctor;
 use App\Services\DoctorService;
 use Illuminate\Http\RedirectResponse;
@@ -38,10 +38,10 @@ class DoctorController extends Controller
         }, 'doctor.create');
     }
 
-    public function store(StoreDoctorRequest $request): RedirectResponse
+    public function store(CreateDoctorData $data): RedirectResponse
     {
-        return $this->handleExceptions(function () use ($request) {
-            $this->doctorService->create($request->validated());
+        return $this->handleExceptions(function () use ($data) {
+            $this->doctorService->create($data);
 
             return to_route('clinic.doctors.index')
                 ->with('toast', ['type' => 'success', 'message' => 'Médico creado correctamente.']);
@@ -58,10 +58,10 @@ class DoctorController extends Controller
         ]);
     }
 
-    public function update(UpdateDoctorRequest $request, Doctor $doctor): RedirectResponse
+    public function update(UpdateDoctorData $data, Doctor $doctor): RedirectResponse
     {
-        return $this->handleExceptions(function () use ($request, $doctor) {
-            $this->doctorService->update($doctor, $request->validated());
+        return $this->handleExceptions(function () use ($data, $doctor) {
+            $this->doctorService->update($doctor, $data);
 
             return to_route('clinic.doctors.index')
                 ->with('toast', ['type' => 'success', 'message' => 'Médico actualizado correctamente.']);

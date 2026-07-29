@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Clinic;
 
+use App\Data\Clinic\CreateSpecialtyData;
+use App\Data\Clinic\UpdateSpecialtyData;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Clinic\StoreSpecialtyRequest;
-use App\Http\Requests\Clinic\UpdateSpecialtyRequest;
 use App\Models\Specialty;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -28,10 +28,10 @@ class SpecialtyController extends Controller
         return Inertia::render('clinic/specialties/Create');
     }
 
-    public function store(StoreSpecialtyRequest $request): RedirectResponse
+    public function store(CreateSpecialtyData $data): RedirectResponse
     {
-        return $this->handleExceptions(function () use ($request) {
-            Specialty::create($request->validated());
+        return $this->handleExceptions(function () use ($data) {
+            Specialty::create(array_filter($data->toArray(), fn ($v) => $v !== null));
 
             return to_route('clinic.specialties.index')
                 ->with('toast', ['type' => 'success', 'message' => 'Especialidad creada correctamente.']);
@@ -45,10 +45,10 @@ class SpecialtyController extends Controller
         ]);
     }
 
-    public function update(UpdateSpecialtyRequest $request, Specialty $specialty): RedirectResponse
+    public function update(UpdateSpecialtyData $data, Specialty $specialty): RedirectResponse
     {
-        return $this->handleExceptions(function () use ($request, $specialty) {
-            $specialty->update($request->validated());
+        return $this->handleExceptions(function () use ($data, $specialty) {
+            $specialty->update(array_filter($data->toArray(), fn ($v) => $v !== null));
 
             return to_route('clinic.specialties.index')
                 ->with('toast', ['type' => 'success', 'message' => 'Especialidad actualizada correctamente.']);

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Clinic;
 
+use App\Data\Clinic\CreateDoctorScheduleData;
+use App\Data\Clinic\UpdateDoctorScheduleData;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Clinic\StoreDoctorScheduleRequest;
-use App\Http\Requests\Clinic\UpdateDoctorScheduleRequest;
 use App\Models\Doctor;
 use App\Models\DoctorSchedule;
 use Illuminate\Http\RedirectResponse;
@@ -32,10 +32,10 @@ class DoctorScheduleController extends Controller
         ]);
     }
 
-    public function store(Doctor $doctor, StoreDoctorScheduleRequest $request): RedirectResponse
+    public function store(Doctor $doctor, CreateDoctorScheduleData $data): RedirectResponse
     {
-        return $this->handleExceptions(function () use ($doctor, $request) {
-            $doctor->schedules()->create($request->validated());
+        return $this->handleExceptions(function () use ($doctor, $data) {
+            $doctor->schedules()->create(array_filter($data->toArray(), fn ($v) => $v !== null));
 
             return to_route('clinic.schedules.index', $doctor)
                 ->with('toast', ['type' => 'success', 'message' => 'Horario creado correctamente.']);
@@ -50,10 +50,10 @@ class DoctorScheduleController extends Controller
         ]);
     }
 
-    public function update(Doctor $doctor, DoctorSchedule $schedule, UpdateDoctorScheduleRequest $request): RedirectResponse
+    public function update(Doctor $doctor, DoctorSchedule $schedule, UpdateDoctorScheduleData $data): RedirectResponse
     {
-        return $this->handleExceptions(function () use ($doctor, $schedule, $request) {
-            $schedule->update($request->validated());
+        return $this->handleExceptions(function () use ($doctor, $schedule, $data) {
+            $schedule->update(array_filter($data->toArray(), fn ($v) => $v !== null));
 
             return to_route('clinic.schedules.index', $doctor)
                 ->with('toast', ['type' => 'success', 'message' => 'Horario actualizado correctamente.']);
